@@ -1,0 +1,6 @@
+c:\users\arnas\documents\visual studio 2015\Projects\OperatingSystemsCA1\OperatingSystemsCA1\bin\Debug\OperatingSystemsCA1.exe.config
+c:\users\arnas\documents\visual studio 2015\Projects\OperatingSystemsCA1\OperatingSystemsCA1\bin\Debug\OperatingSystemsCA1.exe
+c:\users\arnas\documents\visual studio 2015\Projects\OperatingSystemsCA1\OperatingSystemsCA1\bin\Debug\OperatingSystemsCA1.pdb
+c:\users\arnas\documents\visual studio 2015\Projects\OperatingSystemsCA1\OperatingSystemsCA1\obj\Debug\OperatingSystemsCA1.csprojResolveAssemblyReference.cache
+c:\users\arnas\documents\visual studio 2015\Projects\OperatingSystemsCA1\OperatingSystemsCA1\obj\Debug\OperatingSystemsCA1.exe
+c:\users\arnas\documents\visual studio 2015\Projects\OperatingSystemsCA1\OperatingSystemsCA1\obj\Debug\OperatingSystemsCA1.pdb
