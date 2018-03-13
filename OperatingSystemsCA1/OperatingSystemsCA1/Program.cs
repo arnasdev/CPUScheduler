@@ -23,9 +23,9 @@ namespace OperatingSystemsCA1
     /// </summary>
     public class Job
     {
-        string name;
-        int runTime;
-        int arrivalTime;
+        public string name;
+        public int runTime;
+        public int arrivalTime;
 
         Job(string name, int runTime, int arrivalTime)
         {
@@ -139,7 +139,11 @@ namespace OperatingSystemsCA1
         public override void SortArrivalTimes()
         {
             List<Job> jobList = new List<Job>();
-
+            jobList.Sort(delegate (Job j1, Job j2){
+                    if      (j1.runTime < j2.runTime)   return 1;
+                    else if (j1.runTime > j2.runTime)   return -1;
+                    else                                return 0;
+            });
         }
     }
 
