@@ -13,7 +13,8 @@ namespace OperatingSystemsCA1
         static void Main(string[] args)
         {
             List<Job> jobList = Job.ReadJobs();
-            JobScheduler scheduler = new JobScheduler(new FIFO(), new RoundRobin(), jobList);
+            JobScheduler scheduler = new JobScheduler(new FIFO(), new ShortestTime(), jobList);
+            Console.Read();
         }
     }
 
@@ -193,95 +194,76 @@ namespace OperatingSystemsCA1
     {
         public override void SortTimeSteps(ref Dictionary<int, Job> jobSchedule, ref List<Job> jobList)
         {
-
-            // pseudocode begin
-            var currentTime = -1;
+            int timeStep = 0;
+            bool jobsFinished = false;
             List<Job> jobsThatHaveArrived = new List<Job>();
+            Job currentRunningJob = null;
+    
 
-            // some kind of loop here that runs through timesteps
-
-
-            // --------- first timestep ---------
-            var jobsAtZero = jobList.Where(job => job.arrivalTime == 0).ToList();
-
-            currentTime = 0;
-            jobsThatHaveArrived.AddRange(jobsAtZero);
-            SortArrivedJobsByShortestTime(ref jobsThatHaveArrived);
-
-            var runningJob = jobSchedule[currentTime];  // assign first running job
-
-            
-            var jobsAtOne = jobList.Where(job => job.arrivalTime == 1).ToList();
-
-            // if job arriving at next timestep with shortest running time has less running time than current job
-            // set the current job to be this new job and run through it 
-            if(jobsThatHaveArrived[0].timeLeft < runningJob.timeLeft)
+            while (!jobsFinished)
             {
-                runningJob = jobsThatHaveArrived[0]; // current job switches to shortest
-            }
+                Console.WriteLine("");
+                Console.WriteLine("TIMESTEP: " + timeStep);
+                var jobsArrivingAtCurrentTimestep = jobList.Where(job => job.arrivalTime == timeStep);
+                foreach(Job j in jobsArrivingAtCurrentTimestep)
+                {
+                    Console.WriteLine("Job " + j.name + "arrived!");
+                }
 
-            // Process this timestep and decrement time remaining for job
-            if (runningJob.timeLeft > 0)
-            {
-                // decrement timeleft
-                runningJob.timeLeft--;
-            }
 
-            if(runningJob.timeLeft <= 0)
-            {
-                // job is finished
-                runningJob.isFinished = true;
-            }
+                jobsThatHaveArrived.AddRange(jobsArrivingAtCurrentTimestep);
+                SortArrivedJobsByShortestTime(ref jobsThatHaveArrived);
 
-            if (jobsThatHaveArrived.Count == 0)
-            {
-                // Finished all jobs
-            }
+                if (timeStep == 0)
+                {
+                    currentRunningJob = jobsThatHaveArrived[0];
+                }
+                else
+                {
+                    if (currentRunningJob.isFinished)
+                    {
+                        if (jobsThatHaveArrived.Count > 0)
+                        {
+                            currentRunningJob = jobsThatHaveArrived[0];
+                        }
+                        else
+                        {
+                            jobsFinished = true;
+                            Console.WriteLine("all jobs finished");
+                            continue;
+                        }
+                    }
 
-            // --------- next timestep ---------
-            currentTime = 1;
-            jobsThatHaveArrived.AddRange(jobsAtOne);
-            SortArrivedJobsByShortestTime(ref jobsThatHaveArrived);
+                    if (jobsThatHaveArrived[0].timeLeft < currentRunningJob.timeLeft)
+                    {
+                        currentRunningJob = jobsThatHaveArrived[0]; // current job switches to shortest
+                    }       
+                }
 
-            if (jobsThatHaveArrived[0].timeLeft < runningJob.timeLeft)
-            {
-                runningJob = jobsThatHaveArrived[0]; // current job switches to shortest
-            }
+                if (currentRunningJob.timeLeft > 0)
+                {
+                    currentRunningJob.timeLeft--;
+                    Console.WriteLine(currentRunningJob.name + " timeleft: " + currentRunningJob.timeLeft);
+                }
 
-            // Process this timestep and decrement time remaining for job
-            if (runningJob.timeLeft > 0)
-            {
-                // decrement timeleft
-                runningJob.timeLeft--;
-            }
+                if (currentRunningJob.timeLeft <= 0)
+                {
+                    currentRunningJob.isFinished = true;
+                    Console.WriteLine(currentRunningJob.name + " finished");
+                }
 
-            if (runningJob.timeLeft <= 0)
-            {
-                // job is finished
-                runningJob.isFinished = true;
-            }
-
-            if(jobsThatHaveArrived.Count == 0)
-            {
-                // Finished all jobs
-            }
-
-            // --------- next timestep ---------
-            jobSchedule[currentTime] = null;
-
-            foreach (Job j in jobList)
-            {
+                timeStep++;
                 
+                // todo, need to account for when currentjob is finished and no jobs arrive at this timeslot, but jobs will arrive in future
             }
-            // pseudocode end
         }
 
         public static void SortArrivedJobsByShortestTime(ref List<Job> jobsThatHaveArrived)
         {
             // Sort our jobs by shortest time left
             jobsThatHaveArrived.Sort(delegate (Job j1, Job j2) {
-                if      (j1.timeLeft < j2.timeLeft)     return 1;
-                else if (j1.timeLeft > j2.timeLeft)     return -1;
+                if      (j1.timeLeft < j2.timeLeft)     return -1;
+                else if (j1.timeLeft > j2.timeLeft)     return 1;
                 else                                    return 0;
             });
 
