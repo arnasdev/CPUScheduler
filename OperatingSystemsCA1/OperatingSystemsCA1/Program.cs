@@ -26,12 +26,17 @@ namespace OperatingSystemsCA1
         public string name;
         public int runTime;
         public int arrivalTime;
+        public int timeLeft;
+        public bool isFinished;
 
         Job(string name, int runTime, int arrivalTime)
         {
             this.name = name;
             this.runTime = runTime;
             this.arrivalTime = arrivalTime;
+
+            timeLeft = runTime;
+            isFinished = false;
         }
 
         /// <summary>
@@ -88,9 +93,23 @@ namespace OperatingSystemsCA1
             this.arrivalTimeScheduler = arrivalTimeScheduler;
             this.timestepScheduler = timestepScheduler;
             this.jobList = jobList;
+
+            InitialSort();
+            CreateJobSchedule();
+        }
+
+        private void InitialSort()
+        {
+            arrivalTimeScheduler.SortArrivalTimes(ref jobList);
+        }
+
+        private void CreateJobSchedule()
+        {
+            timestepScheduler.SortTimeSteps(ref jobSchedule, ref jobList);
         }
     }
 
+    #region Arrival Time Schedulers
     /// <summary>
     /// Base class for any sorting algorithms which decide on arrival time
     /// </summary>
@@ -101,11 +120,43 @@ namespace OperatingSystemsCA1
         {
         }
 
-        public virtual void SortArrivalTimes()
+        public virtual void SortArrivalTimes(ref List<Job> jobList)
         {
         }
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
+    public class FIFO : ArrivalTimeScheduler
+    {
+        public override void SortArrivalTimes(ref List<Job> jobList)
+        {
+            jobList.Sort(delegate (Job j1, Job j2) {
+                if (j1.arrivalTime < j2.arrivalTime) return 1;
+                else if (j1.arrivalTime > j2.arrivalTime) return -1;
+                else return 0;
+            });
+        }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public class ShortestFirst : ArrivalTimeScheduler
+    {
+        public override void SortArrivalTimes(ref List<Job> jobList)
+        {
+            jobList.Sort(delegate (Job j1, Job j2) {
+                if (j1.runTime < j2.runTime) return 1;
+                else if (j1.runTime > j2.runTime) return -1;
+                else return 0;
+            });
+        }
+    }
+    #endregion
+
+    #region Time Step Schedulers
     /// <summary>
     /// Base class for any sorting algorithms which decide each time-step
     /// </summary>
@@ -116,34 +167,8 @@ namespace OperatingSystemsCA1
         {
         }
 
-        public virtual void SortTimeStep()
+        public virtual void SortTimeSteps(ref Dictionary<int, Job> jobSchedule, ref List<Job> jobList)
         {
-        }
-    }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    public class FIFO : ArrivalTimeScheduler
-    {
-        public override void SortArrivalTimes()
-        {
-        }
-    }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    public class ShortestFirst : ArrivalTimeScheduler
-    {
-        public override void SortArrivalTimes()
-        {
-            List<Job> jobList = new List<Job>();
-            jobList.Sort(delegate (Job j1, Job j2){
-                    if      (j1.runTime < j2.runTime)   return 1;
-                    else if (j1.runTime > j2.runTime)   return -1;
-                    else                                return 0;
-            });
         }
     }
 
@@ -152,12 +177,118 @@ namespace OperatingSystemsCA1
     /// </summary>
     public class RoundRobin : TimestepScheduler
     {
+        private int timeSlice1;
+        private int timeSlice2;
+
+        public override void SortTimeSteps(ref Dictionary<int, Job> jobSchedule, ref List<Job> jobList)
+        {
+           
+        }
     }
 
     /// <summary>
-    /// 
+    /// Orders jobs by the shortest time to completion
     /// </summary>
     public class ShortestTime : TimestepScheduler
     {
+        public override void SortTimeSteps(ref Dictionary<int, Job> jobSchedule, ref List<Job> jobList)
+        {
+
+            // pseudocode begin
+            var currentTime = -1;
+            List<Job> jobsThatHaveArrived = new List<Job>();
+
+            // some kind of loop here that runs through timesteps
+
+
+            // --------- first timestep ---------
+            var jobsAtZero = jobList.Where(job => job.arrivalTime == 0).ToList();
+
+            currentTime = 0;
+            jobsThatHaveArrived.AddRange(jobsAtZero);
+            SortArrivedJobsByShortestTime(ref jobsThatHaveArrived);
+
+            var runningJob = jobSchedule[currentTime];  // assign first running job
+
+            
+            var jobsAtOne = jobList.Where(job => job.arrivalTime == 1).ToList();
+
+            // if job arriving at next timestep with shortest running time has less running time than current job
+            // set the current job to be this new job and run through it 
+            if(jobsThatHaveArrived[0].timeLeft < runningJob.timeLeft)
+            {
+                runningJob = jobsThatHaveArrived[0]; // current job switches to shortest
+            }
+
+            // Process this timestep and decrement time remaining for job
+            if (runningJob.timeLeft > 0)
+            {
+                // decrement timeleft
+                runningJob.timeLeft--;
+            }
+
+            if(runningJob.timeLeft <= 0)
+            {
+                // job is finished
+                runningJob.isFinished = true;
+            }
+
+            if (jobsThatHaveArrived.Count == 0)
+            {
+                // Finished all jobs
+            }
+
+            // --------- next timestep ---------
+            currentTime = 1;
+            jobsThatHaveArrived.AddRange(jobsAtOne);
+            SortArrivedJobsByShortestTime(ref jobsThatHaveArrived);
+
+            if (jobsThatHaveArrived[0].timeLeft < runningJob.timeLeft)
+            {
+                runningJob = jobsThatHaveArrived[0]; // current job switches to shortest
+            }
+
+            // Process this timestep and decrement time remaining for job
+            if (runningJob.timeLeft > 0)
+            {
+                // decrement timeleft
+                runningJob.timeLeft--;
+            }
+
+            if (runningJob.timeLeft <= 0)
+            {
+                // job is finished
+                runningJob.isFinished = true;
+            }
+
+            if(jobsThatHaveArrived.Count == 0)
+            {
+                // Finished all jobs
+            }
+
+            // --------- next timestep ---------
+            jobSchedule[currentTime] = null;
+
+            foreach (Job j in jobList)
+            {
+                
+            }
+            // pseudocode end
+        }
+
+        public static void SortArrivedJobsByShortestTime(ref List<Job> jobsThatHaveArrived)
+        {
+            // Sort our jobs by shortest time left
+            jobsThatHaveArrived.Sort(delegate (Job j1, Job j2) {
+                if      (j1.timeLeft < j2.timeLeft)     return 1;
+                else if (j1.timeLeft > j2.timeLeft)     return -1;
+                else                                    return 0;
+            });
+
+            // And clean up completed jobs, maybe do something with them later
+            jobsThatHaveArrived.RemoveAll(job => job.isFinished == true);
+        }
     }
+    #endregion
+
 }
