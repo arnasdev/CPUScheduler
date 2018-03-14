@@ -13,7 +13,7 @@ namespace OperatingSystemsCA1
         static void Main(string[] args)
         {
             List<Job> jobList = Job.ReadJobs();
-            JobScheduler scheduler = new JobScheduler(new FIFO(), new ShortestTime(), jobList);
+            JobScheduler scheduler = new JobScheduler(new ShortestTime(), jobList);
             Console.Read();
         }
     }
@@ -78,9 +78,13 @@ namespace OperatingSystemsCA1
     /// </summary>
     public class JobScheduler
     {
+
+        // Schedulers - eventually all schedulers will be here
+        ShortestTime st;
+
+
         // Inputs
-        ArrivalTimeScheduler arrivalTimeScheduler;
-        TimestepScheduler timestepScheduler;
+        Scheduler scheduler;
         List<Job> jobList;
 
         // Output
@@ -89,86 +93,42 @@ namespace OperatingSystemsCA1
         /// <param name="arrivalTimeScheduler">Arrival Scheduler: FIFO or ShortestFirst</param>
         /// <param name="timestepScheduler">Timestep Scheduler: RoundRobin or ShortestTime</param>
         /// <param name="jobList">List of jobs to be scheduled</param>
-        public JobScheduler(ArrivalTimeScheduler arrivalTimeScheduler, TimestepScheduler timestepScheduler, List<Job> jobList)
+        public JobScheduler(Scheduler scheduler, List<Job> jobList)
         {
-            this.arrivalTimeScheduler = arrivalTimeScheduler;
-            this.timestepScheduler = timestepScheduler;
-            this.jobList = jobList;
+            st = new ShortestTime();
 
-            InitialSort();
-            CreateJobSchedule();
+            //this.scheduler = scheduler;
+            //this.jobList = jobList;
+
+            //InitialSort();
+            //CreateJobSchedule();
         }
 
         private void InitialSort()
         {
-            arrivalTimeScheduler.SortArrivalTimes(ref jobList);
+            //arrivalTimeScheduler.SortArrivalTimes(ref jobList);
         }
 
         private void CreateJobSchedule()
         {
-            timestepScheduler.SortTimeSteps(ref jobSchedule, ref jobList);
+            scheduler.SortTimes(ref jobSchedule, ref jobList);
         }
     }
 
-    #region Arrival Time Schedulers
+
+
+    #region Schedulers
     /// <summary>
     /// Base class for any sorting algorithms which decide on arrival time
     /// </summary>
-    public class ArrivalTimeScheduler
+    public class Scheduler
     {
         // Cannot create an instance of this base class, subclasses used instead
-        protected ArrivalTimeScheduler()
+        protected Scheduler()
         {
         }
 
-        public virtual void SortArrivalTimes(ref List<Job> jobList)
-        {
-        }
-    }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    public class FIFO : ArrivalTimeScheduler
-    {
-        public override void SortArrivalTimes(ref List<Job> jobList)
-        {
-            jobList.Sort(delegate (Job j1, Job j2) {
-                if (j1.arrivalTime < j2.arrivalTime) return 1;
-                else if (j1.arrivalTime > j2.arrivalTime) return -1;
-                else return 0;
-            });
-        }
-    }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    public class ShortestFirst : ArrivalTimeScheduler
-    {
-        public override void SortArrivalTimes(ref List<Job> jobList)
-        {
-            jobList.Sort(delegate (Job j1, Job j2) {
-                if (j1.runTime < j2.runTime) return 1;
-                else if (j1.runTime > j2.runTime) return -1;
-                else return 0;
-            });
-        }
-    }
-    #endregion
-
-    #region Time Step Schedulers
-    /// <summary>
-    /// Base class for any sorting algorithms which decide each time-step
-    /// </summary>
-    public class TimestepScheduler
-    {
-        // Cannot create an instance of this base class, subclasses used instead
-        protected TimestepScheduler()
-        {
-        }
-
-        public virtual void SortTimeSteps(ref Dictionary<int, Job> jobSchedule, ref List<Job> jobList)
+        public virtual void SortTimes(ref Dictionary<int, Job> jobSchedule, ref List<Job> jobList)
         {
         }
     }
@@ -176,12 +136,51 @@ namespace OperatingSystemsCA1
     /// <summary>
     /// 
     /// </summary>
-    public class RoundRobin : TimestepScheduler
+    public class FIFO : Scheduler
+    {
+        public override void SortTimes(ref Dictionary<int, Job> jobSchedule, ref List<Job> jobList)
+        {
+
+        }
+
+        //public override void SortArrivalTimes(ref List<Job> jobList)
+        //{
+        //    jobList.Sort(delegate (Job j1, Job j2) {
+        //        if (j1.arrivalTime < j2.arrivalTime) return 1;
+        //        else if (j1.arrivalTime > j2.arrivalTime) return -1;
+        //        else return 0;
+        //    });
+        //}
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public class ShortestFirst : Scheduler
+    {
+        public override void SortTimes(ref Dictionary<int, Job> jobSchedule, ref List<Job> jobList)
+        {
+
+        }
+        //public override void SortArrivalTimes(ref List<Job> jobList)
+        //{
+        //    jobList.Sort(delegate (Job j1, Job j2) {
+        //        if (j1.runTime < j2.runTime) return 1;
+        //        else if (j1.runTime > j2.runTime) return -1;
+        //        else return 0;
+        //    });
+        //}
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public class RoundRobin : Scheduler
     {
         private int timeSlice1;
         private int timeSlice2;
 
-        public override void SortTimeSteps(ref Dictionary<int, Job> jobSchedule, ref List<Job> jobList)
+        public override void SortTimes(ref Dictionary<int, Job> jobSchedule, ref List<Job> jobList)
         {
            
         }
@@ -190,9 +189,9 @@ namespace OperatingSystemsCA1
     /// <summary>
     /// Orders jobs by the shortest time to completion
     /// </summary>
-    public class ShortestTime : TimestepScheduler
+    public class ShortestTime : Scheduler
     {
-        public override void SortTimeSteps(ref Dictionary<int, Job> jobSchedule, ref List<Job> jobList)
+        public override void SortTimes(ref Dictionary<int, Job> jobSchedule, ref List<Job> jobList)
         {
             int timeStep = 0;
             bool jobsFinished = false;
