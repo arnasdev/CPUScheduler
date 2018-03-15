@@ -42,6 +42,11 @@ namespace OperatingSystemsCA1
             isFinished = false;
         }
 
+        public Job ShallowCopy()
+        {
+            return (Job)this.MemberwiseClone();
+        }
+
         /// <summary>
         /// Reads a .csv file of jobs
         /// </summary>
@@ -82,25 +87,22 @@ namespace OperatingSystemsCA1
     {
 
         // Schedulers - eventually all schedulers will be here
-        //ShortestFirst sf;
-        //FIFO fifo;
+        
+        FIFO fifo;
+        ShortestJobFirst shortestFirst;
         ShortestTime shortestTime;
         //RoundRobin rr1;
         //RoundRobin rr2;
-
-
-        // Inputs
-        Scheduler scheduler;
         List<Job> jobList;
 
-        // Output
-        Dictionary<int, Job> jobSchedule;
 
         /// <param name="scheduler">Type of scheduler</param>
         /// <param name="jobList">List of jobs to be scheduled</param>
         public JobScheduler(Scheduler scheduler, List<Job> jobList)
         {
             shortestTime = new ShortestTime();
+            shortestFirst = new ShortestJobFirst();
+            fifo = new FIFO();
 
             //this.scheduler = scheduler;
             this.jobList = jobList;
@@ -119,15 +121,20 @@ namespace OperatingSystemsCA1
             bool allSchedulersFinished = false;
             int timeStep = 0;
             string output;
-            List<Job> workingJobsPool = new List<Job>();
+            List<Job> newJobsAtCurrentTimestep;
 
+            bool fifoJobsFinished;
+            bool shortestFirstJobsFinished;
             bool shortestTimeJobsFinished;
+
             bool moreJobsToArrive = true;
 
             Console.WriteLine("T\tFIFO\tSJF\tSTCF\tRR1\tRR2");
 
             while (!allSchedulersFinished)
             {
+                newJobsAtCurrentTimestep = new List<Job>();
+
                 output = string.Empty;
 
                 var jobsArrivingAtCurrentTimestep = jobList.Where(job => job.arrivalTime == timeStep);
@@ -149,19 +156,26 @@ namespace OperatingSystemsCA1
                 foreach(Job arrivingJob in jobsArrivingAtCurrentTimestep)
                 {
                     output += timeStep + " ARRIVED: " + arrivingJob.name + "\n";
-                    workingJobsPool.Add(arrivingJob);
+                    newJobsAtCurrentTimestep.Add(arrivingJob);
                 }
 
 
+                string fifoJobName;
+                string sfJobName;
                 string stJobName;
                 
 
-                output += RunSchedulerForTimestep(shortestTime, timeStep, ref jobSchedule, ref workingJobsPool, moreJobsToArrive, out shortestTimeJobsFinished, out stJobName);
+
+                output += RunSchedulerForTimestep(fifo, timeStep, ref newJobsAtCurrentTimestep, moreJobsToArrive, out fifoJobsFinished, out fifoJobName);
+
+                output += RunSchedulerForTimestep(shortestFirst, timeStep, ref newJobsAtCurrentTimestep, moreJobsToArrive, out shortestFirstJobsFinished, out sfJobName);
+                
+                output += RunSchedulerForTimestep(shortestTime, timeStep, ref newJobsAtCurrentTimestep, moreJobsToArrive, out shortestTimeJobsFinished, out stJobName);
 
 
-                output += timeStep + "\tN/A\tN/A\t"+ stJobName + "\tN/A\tN/A";
+                output += timeStep + "\t"+ fifoJobName + "\t" + sfJobName + "\t"+ stJobName + "\tN/A\tN/A";
 
-                if (shortestTimeJobsFinished)
+                if (fifoJobsFinished && shortestTimeJobsFinished && shortestFirstJobsFinished)
                 {
                     allSchedulersFinished = true;
                 }
@@ -173,16 +187,16 @@ namespace OperatingSystemsCA1
             
         }
 
-        private static string RunSchedulerForTimestep(Scheduler s, int timeStep, ref Dictionary<int, Job> jobSchedule, ref List<Job> workingJobsPool, bool moreJobsToArrive, out bool jobsFinished, out string currentRunningJobName)
+        private static string RunSchedulerForTimestep(Scheduler s, int timeStep, ref List<Job> newJobsAtCurrentTimestep, bool moreJobsToArrive, out bool jobsFinished, out string currentRunningJobName)
         {
             string completeJob = string.Empty;
             string output = string.Empty;
 
-            s.SortTimes(timeStep, ref jobSchedule, ref workingJobsPool, moreJobsToArrive, out jobsFinished, out currentRunningJobName, out completeJob);
+            s.ProcessTimestep(timeStep, ref newJobsAtCurrentTimestep, moreJobsToArrive, out jobsFinished, out currentRunningJobName, out completeJob);
 
             if (completeJob != null)
             {
-                output += timeStep + " COMPLETE: " + completeJob + "\n";
+                output += timeStep + " COMPLETE: "+s.schedulerTypeName+ "." + completeJob + "\n";
             }
 
             return output;
@@ -197,12 +211,29 @@ namespace OperatingSystemsCA1
     /// </summary>
     public class Scheduler
     {
+        protected Job emptyJob = Job.EmptyJob;      // An empty job for when the system is not processing any jobs, allows for idling in the case of late arriving jobs
+        protected bool jobsFinished = false;        // Are all jobs for this scheduler finished
+        protected Job currentRunningJob = null;     // The current running job
+        protected List<Job> sortedJobsPool = null;  // A list of currently queued jobs, sorted to the specific algorithm required for each scheduler
+        public string schedulerTypeName = string.Empty;
+
         // Cannot create an instance of this base class, subclasses used instead
         protected Scheduler()
         {
+            sortedJobsPool = new List<Job>();
         }
 
-        public virtual void SortTimes(int timeStep, ref Dictionary<int, Job> jobSchedule, ref List<Job> workingJobsPool, bool moreJobsToArrive, out bool jobsFinished, out string currentRunningJobName, out string completeJob)
+
+
+        public static void AddClonedJobsToList(ref List<Job> jobList, List<Job> jobsToAdd)
+        {
+            foreach(Job j in jobsToAdd)
+            {
+                jobList.Add(j.ShallowCopy());
+            }
+        }
+
+        public virtual void ProcessTimestep(int timeStep, ref List<Job> newJobsAtCurrentTimestep, bool moreJobsToArrive, out bool jobsFinished, out string currentRunningJobName, out string completeJob)
         {
             jobsFinished = false;
             currentRunningJobName = null;
@@ -213,43 +244,185 @@ namespace OperatingSystemsCA1
     ///// <summary>
     ///// 
     ///// </summary>
-    //public class FIFO : Scheduler
-    //{
-    //    public override void SortTimes(int timeStep, ref Dictionary<int, Job> jobSchedule, ref List<Job> jobList, out bool jobsFinishedReturn, out string currentRunningJobName)
-    //    {
-    //        jobsFinishedReturn = false;
-    //        currentRunningJobName = null;
-    //    }
+    public class FIFO : Scheduler
+    {
+        public FIFO()
+        {
+            schedulerTypeName = "FIFO";
+        }
 
-    //    //public override void SortArrivalTimes(ref List<Job> jobList)
-    //    //{
-    //    //    jobList.Sort(delegate (Job j1, Job j2) {
-    //    //        if (j1.arrivalTime < j2.arrivalTime) return 1;
-    //    //        else if (j1.arrivalTime > j2.arrivalTime) return -1;
-    //    //        else return 0;
-    //    //    });
-    //    //}
-    //}
+        public override void ProcessTimestep(int timeStep, ref List<Job> newJobsAtCurrentTimestep, bool moreJobsToArrive, out bool jobsFinishedReturn, out string currentRunningJobName, out string completeJob)
+        {
+            completeJob = null;
+            AddClonedJobsToList(ref sortedJobsPool, newJobsAtCurrentTimestep);
+            Clean(ref sortedJobsPool);
+
+            if (currentRunningJob == Job.EmptyJob && !moreJobsToArrive && sortedJobsPool.Count() == 1)
+            {
+                jobsFinished = true;
+            }
+
+
+            if (timeStep == 0)
+            {
+                currentRunningJob = sortedJobsPool[0];
+            }
+            else
+            {
+                if (currentRunningJob.isFinished && !moreJobsToArrive && sortedJobsPool.Count() == 0)
+                {
+                    currentRunningJob = Job.EmptyJob;
+                }
+
+                if (currentRunningJob.isFinished || currentRunningJob == Job.EmptyJob)
+                {
+                    if (sortedJobsPool.Count > 0)
+                    {
+                        currentRunningJob = sortedJobsPool[0];
+                    }
+                    else
+                    {
+                        if (!moreJobsToArrive)
+                        {
+                            jobsFinished = true;
+                        }
+                        else
+                        {
+                            currentRunningJob = emptyJob;
+                        }
+                    }
+                }
+                else
+                {
+                    //if(currentRunningJob == Job.EmptyJob && sorted)
+                    //{
+
+                    //}
+                }
+            }
+
+            if (currentRunningJob != Job.EmptyJob)
+            {
+                if (currentRunningJob.timeLeft > 0)
+                {
+                    currentRunningJob.timeLeft--;
+                }
+
+                if (currentRunningJob.timeLeft <= 0)
+                {
+                    completeJob = currentRunningJob.name;
+                    currentRunningJob.isFinished = true;
+                }
+            }
+
+           
+
+            jobsFinishedReturn = jobsFinished;
+            currentRunningJobName = currentRunningJob.name;
+        }
+
+        public static void Clean(ref List<Job> jobsThatHaveArrived)
+        {
+            jobsThatHaveArrived.RemoveAll(job => job.isFinished == true);
+        }
+    }
 
     ///// <summary>
     ///// 
     ///// </summary>
-    //public class ShortestFirst : Scheduler
-    //{
-    //    public override void SortTimes(int timeStep, ref Dictionary<int, Job> jobSchedule, ref List<Job> jobList, out bool jobsFinishedReturn, out string currentRunningJobName)
-    //    {
-    //        jobsFinishedReturn = false;
-    //        currentRunningJobName = null;
-    //    }
-    //    //public override void SortArrivalTimes(ref List<Job> jobList)
-    //    //{
-    //    //    jobList.Sort(delegate (Job j1, Job j2) {
-    //    //        if (j1.runTime < j2.runTime) return 1;
-    //    //        else if (j1.runTime > j2.runTime) return -1;
-    //    //        else return 0;
-    //    //    });
-    //    //}
-    //}
+    public class ShortestJobFirst : Scheduler
+    {
+        public ShortestJobFirst()
+        {
+            schedulerTypeName = "SJF";
+        }
+
+        public override void ProcessTimestep(int timeStep, ref List<Job> newJobsAtCurrentTimestep, bool moreJobsToArrive, out bool jobsFinishedReturn, out string currentRunningJobName, out string completeJob)
+        {
+            completeJob = null;
+            AddClonedJobsToList(ref sortedJobsPool, newJobsAtCurrentTimestep);
+            Clean(ref sortedJobsPool);
+
+            if (currentRunningJob == Job.EmptyJob && !moreJobsToArrive && sortedJobsPool.Count() == 1)
+            {
+                jobsFinished = true;
+            }
+
+
+            if (timeStep == 0)
+            {
+                SortByShortestTime(ref sortedJobsPool);
+                currentRunningJob = sortedJobsPool[0];
+            }
+            else
+            {
+                if (currentRunningJob.isFinished && !moreJobsToArrive && sortedJobsPool.Count() == 0)
+                {
+                    currentRunningJob = Job.EmptyJob;
+                }
+
+                if (currentRunningJob.isFinished || currentRunningJob == Job.EmptyJob)
+                {
+                    if (sortedJobsPool.Count > 0)
+                    {
+                        currentRunningJob = sortedJobsPool[0];
+                    }
+                    else
+                    {
+                        if (!moreJobsToArrive)
+                        {
+                            jobsFinished = true;
+                        }
+                        else
+                        {
+                            currentRunningJob = emptyJob;
+                        }
+                    }
+                }
+                else
+                {
+                    //if(currentRunningJob == Job.EmptyJob && sorted)
+                    //{
+
+                    //}
+                }
+            }
+
+            if (currentRunningJob != Job.EmptyJob)
+            {
+                if (currentRunningJob.timeLeft > 0)
+                {
+                    currentRunningJob.timeLeft--;
+                }
+
+                if (currentRunningJob.timeLeft <= 0)
+                {
+                    completeJob = currentRunningJob.name;
+                    currentRunningJob.isFinished = true;
+                }
+            }
+
+
+
+            jobsFinishedReturn = jobsFinished;
+            currentRunningJobName = currentRunningJob.name;
+        }
+
+        public static void SortByShortestTime(ref List<Job> jobsThatHaveArrived)
+        {
+            // Sort our jobs by shortest time left
+            jobsThatHaveArrived.Sort(delegate (Job j1, Job j2) {
+                if      (j1.timeLeft < j2.timeLeft) return -1;
+                else if (j1.timeLeft > j2.timeLeft) return 1;
+                else                                return 0;
+            });
+        }
+
+        public static void Clean(ref List<Job> jobsThatHaveArrived)
+        {
+            jobsThatHaveArrived.RemoveAll(job => job.isFinished == true);
+        }
+    }
 
     ///// <summary>
     ///// 
@@ -271,30 +444,28 @@ namespace OperatingSystemsCA1
     /// </summary>
     public class ShortestTime : Scheduler
     {
-        Job emptyJob = Job.EmptyJob;
+        public ShortestTime()
+        {
+           schedulerTypeName = "STCF";
+        }
 
-        bool jobsFinished = false;
-        Job currentRunningJob = null;
-        
-        List<Job> shortestTimeSortedJobsPool = null;
-
-        public override void SortTimes(int timeStep, ref Dictionary<int, Job> jobSchedule, ref List<Job> workingJobsPool, bool moreJobsToArrive, out bool jobsFinishedReturn, out string currentRunningJobName, out string completeJob)
+        public override void ProcessTimestep(int timeStep, ref List<Job> newJobsAtCurrentTimestep, bool moreJobsToArrive, out bool jobsFinishedReturn, out string currentRunningJobName, out string completeJob)
         {
             completeJob = null;
-            shortestTimeSortedJobsPool = workingJobsPool;
-            SortArrivedJobsByShortestTime(ref shortestTimeSortedJobsPool);
+            AddClonedJobsToList(ref sortedJobsPool, newJobsAtCurrentTimestep);
+            SortByShortestTimeAndClean(ref sortedJobsPool);
 
             if (timeStep == 0)
             {
-                currentRunningJob = shortestTimeSortedJobsPool[0];
+                currentRunningJob = sortedJobsPool[0];
             }
             else
             {
                 if (currentRunningJob.isFinished)
                 {
-                    if(shortestTimeSortedJobsPool.Count > 0)
+                    if(sortedJobsPool.Count > 0)
                     {
-                        currentRunningJob = shortestTimeSortedJobsPool[0];
+                        currentRunningJob = sortedJobsPool[0];
                     }
                     else
                     {
@@ -305,13 +476,15 @@ namespace OperatingSystemsCA1
                     }
                 }
 
+
+
                 if (!jobsFinished)
                 {
-                    if(shortestTimeSortedJobsPool.Count() > 0)
+                    if(sortedJobsPool.Count() > 0)
                     {
-                        if (shortestTimeSortedJobsPool[0].timeLeft < currentRunningJob.timeLeft || currentRunningJob == Job.EmptyJob)
+                        if (sortedJobsPool[0].timeLeft < currentRunningJob.timeLeft || currentRunningJob == Job.EmptyJob)
                         {
-                            currentRunningJob = shortestTimeSortedJobsPool[0]; // current job switches to shortest
+                            currentRunningJob = sortedJobsPool[0]; // current job switches to shortest
                         }
                     }
                     else
@@ -339,13 +512,17 @@ namespace OperatingSystemsCA1
                     currentRunningJob.isFinished = true;
                 }
             }
-         
+
+            if (currentRunningJob == Job.EmptyJob && !moreJobsToArrive && sortedJobsPool.Count() == 1)
+            {
+                jobsFinished = true;
+            }
 
             jobsFinishedReturn = jobsFinished;
             currentRunningJobName = currentRunningJob.name;
         }
 
-        public static void SortArrivedJobsByShortestTime(ref List<Job> jobsThatHaveArrived)
+        public static void SortByShortestTimeAndClean(ref List<Job> jobsThatHaveArrived)
         {
             // Sort our jobs by shortest time left
             jobsThatHaveArrived.Sort(delegate (Job j1, Job j2) {
