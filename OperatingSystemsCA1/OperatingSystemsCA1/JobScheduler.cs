@@ -120,6 +120,8 @@ namespace OperatingSystemsCA1
                 OutputToFile(output);
             }
 
+            Console.WriteLine("= SIMULATION COMPLETE");
+            OutputToFile("= SIMULATION COMPLETE");
 
             // After schedulers have finished, write statistics
             CalculateAndOutputStatistics();
