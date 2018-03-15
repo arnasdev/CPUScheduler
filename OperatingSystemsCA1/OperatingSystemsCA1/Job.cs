@@ -25,7 +25,7 @@ namespace OperatingSystemsCA1
 
         public static Job EmptyJob = new Job("NO JOB", 0, 0); // An empty job for when the system is not processing any jobs, allows for idling in the case of late arriving jobs
 
-        Job(string name, int runTime, int arrivalTime)
+        Job(string name, int arrivalTime, int runTime)
         {
             this.name = name;
             this.runTime = runTime;
@@ -44,12 +44,18 @@ namespace OperatingSystemsCA1
         /// Reads a .csv file of jobs
         /// </summary>
         /// <returns>A list of jobs parsed from a .csv file</returns>
-        public static List<Job> ReadJobs()
+        public static List<Job> ReadJobs(string whichJobFile)
         {
+            if(whichJobFile == string.Empty)
+            {
+                whichJobFile = "Jobs1";
+            }
+
+            string directoryPath = System.AppDomain.CurrentDomain.BaseDirectory + whichJobFile + ".txt";
             List<Job> parsedJobList = null;
             try
             {
-                using (var reader = new StreamReader(@"C:\Users\d00167238\Desktop\Jobs.csv"))
+                using (var reader = new StreamReader(directoryPath))
                 {
                     parsedJobList = new List<Job>();
                     Job parsedJob = null;

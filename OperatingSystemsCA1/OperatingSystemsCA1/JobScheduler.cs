@@ -21,7 +21,7 @@ namespace OperatingSystemsCA1
         // List of all jobs
         List<Job> jobList;
 
-        public const string outputFile = @"C:\Users\d00167238\Desktop\Output.txt";
+
 
         /// <param name="scheduler">Type of scheduler</param>
         /// <param name="jobList">List of jobs to be scheduled</param>
@@ -128,7 +128,7 @@ namespace OperatingSystemsCA1
         public static void OutputToFile(string output)
         {
             using (System.IO.StreamWriter file =
-            new System.IO.StreamWriter(outputFile, true))
+            new System.IO.StreamWriter(Program.outputFile, true))
             {
                 file.WriteLine(output);
             }
@@ -177,19 +177,19 @@ namespace OperatingSystemsCA1
             OutputToFile(headerResponse);
             foreach (Job j in jobList)
             {
-                int jobFIFOResponseTime = Job.turnAroundTimes[j.name]["FIFO"];
+                int jobFIFOResponseTime = Job.responseTimes[j.name]["FIFO"];
                 fifoResponseTotal += jobFIFOResponseTime;
 
-                int jobSJFResponseTime = Job.turnAroundTimes[j.name]["SJF"];
+                int jobSJFResponseTime = Job.responseTimes[j.name]["SJF"];
                 sjfResponseTotal += jobSJFResponseTime;
 
-                int jobSTCFResponseTime = Job.turnAroundTimes[j.name]["STCF"];
+                int jobSTCFResponseTime = Job.responseTimes[j.name]["STCF"];
                 stcfResponseTotal += jobSTCFResponseTime;
 
-                int jobRR1ResponseTime = Job.turnAroundTimes[j.name]["RR1"];
+                int jobRR1ResponseTime = Job.responseTimes[j.name]["RR1"];
                 rr1ResponseTotal += jobRR1ResponseTime;
 
-                int jobRR2ResponseTime = Job.turnAroundTimes[j.name]["RR2"];
+                int jobRR2ResponseTime = Job.responseTimes[j.name]["RR2"];
                 rr2ResponseTotal += jobRR2ResponseTime;
 
                 string responseTime = "R\t" + j.name + "\t" + jobFIFOResponseTime + "\t" + jobSJFResponseTime + "\t" + jobSTCFResponseTime + "\t" + jobRR1ResponseTime + "\t" + jobRR2ResponseTime;

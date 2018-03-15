@@ -37,7 +37,11 @@ namespace OperatingSystemsCA1
 
             if (timeStep == 0)
             {
-                currentRunningJob = sortedJobsPool[0];
+                currentRunningJob = Job.EmptyJob;
+                if (sortedJobsPool.Count > 0)
+                {
+                    currentRunningJob = sortedJobsPool[0];
+                }
             }
             else
             {
