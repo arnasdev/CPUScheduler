@@ -49,7 +49,7 @@ namespace OperatingSystemsCA1
             List<Job> parsedJobList = null;
             try
             {
-                using (var reader = new StreamReader(@"C:\Jobs.csv"))
+                using (var reader = new StreamReader(@"C:\Users\d00167238\Desktop\Jobs.csv"))
                 {
                     parsedJobList = new List<Job>();
                     Job parsedJob = null;

@@ -21,6 +21,7 @@ namespace OperatingSystemsCA1
         // List of all jobs
         List<Job> jobList;
 
+        public const string outputFile = @"C:\Users\d00167238\Desktop\Output.txt";
 
         /// <param name="scheduler">Type of scheduler</param>
         /// <param name="jobList">List of jobs to be scheduled</param>
@@ -59,7 +60,9 @@ namespace OperatingSystemsCA1
                 Job.responseTimes.Add(j.name, new Dictionary<string, int>());
             }
 
-            Console.WriteLine("T\tFIFO\tSJF\tSTCF\tRR1\tRR2");
+            string header = "T\tFIFO\tSJF\tSTCF\tRR1\tRR2";
+            Console.WriteLine(header);
+            OutputToFile(header);
 
             // timestep loop
             while (!allSchedulersFinished)
@@ -86,7 +89,7 @@ namespace OperatingSystemsCA1
 
                 foreach (Job arrivingJob in jobsArrivingAtCurrentTimestep)
                 {
-                    output += timeStep + " ARRIVED: " + arrivingJob.name + "\n";
+                    output += timeStep + " ARRIVED: " + arrivingJob.name + "\r\n";
                     newJobsAtCurrentTimestep.Add(arrivingJob);
                 }
 
@@ -114,10 +117,21 @@ namespace OperatingSystemsCA1
                 // Increment timestep and write output to console
                 timeStep++;
                 Console.WriteLine(output);
+                OutputToFile(output);
             }
+
 
             // After schedulers have finished, write statistics
             CalculateAndOutputStatistics();
+        }
+
+        public static void OutputToFile(string output)
+        {
+            using (System.IO.StreamWriter file =
+            new System.IO.StreamWriter(outputFile, true))
+            {
+                file.WriteLine(output);
+            }
         }
 
         private void CalculateAndOutputStatistics()
@@ -128,7 +142,10 @@ namespace OperatingSystemsCA1
             int jobCount = jobList.Count();
 
             // Outputting the turnaround times per job
-            Console.WriteLine("\n#\tJOB\tFIFO\tSJF\tSTCF\tRR1\tRR2");
+            string headerTurnaround = "\r\n#\tJOB\tFIFO\tSJF\tSTCF\tRR1\tRR2";
+            Console.WriteLine(headerTurnaround);
+            OutputToFile(headerTurnaround);
+
             foreach (Job j in jobList)
             {
                 int jobFIFOTurnaroundTime = Job.turnAroundTimes[j.name]["FIFO"];
@@ -146,12 +163,18 @@ namespace OperatingSystemsCA1
                 int jobRR2TurnaroundTime = Job.turnAroundTimes[j.name]["RR2"];
                 rr2TurnaroundTotal += jobRR2TurnaroundTime;
 
-                Console.WriteLine("T\t" + j.name + "\t" + jobFIFOTurnaroundTime + "\t" + jobSJFTurnaroundTime + "\t" + jobSTCFTurnaroundTime + "\t" + jobRR1TurnaroundTime + "\t" + jobRR2TurnaroundTime);
+                string turnaroundTime = "T\t" + j.name + "\t" + jobFIFOTurnaroundTime + "\t" + jobSJFTurnaroundTime + "\t" + jobSTCFTurnaroundTime + "\t" + jobRR1TurnaroundTime + "\t" + jobRR2TurnaroundTime;
+                Console.WriteLine(turnaroundTime);
+                OutputToFile(turnaroundTime);
             }
-            Console.WriteLine("= INDIVIDUAL STATS COMPLETE");
+            string statsComplete = "= INDIVIDUAL STATS COMPLETE";
+            Console.WriteLine(statsComplete);
+            OutputToFile(statsComplete);
 
             // Outputting the response times per job
-            Console.WriteLine("\n#\tJOB\tFIFO\tSJF\tSTCF\tRR1\tRR2");
+            string headerResponse = "\r\n#\tJOB\tFIFO\tSJF\tSTCF\tRR1\tRR2";
+            Console.WriteLine(headerResponse);
+            OutputToFile(headerResponse);
             foreach (Job j in jobList)
             {
                 int jobFIFOResponseTime = Job.turnAroundTimes[j.name]["FIFO"];
@@ -169,20 +192,27 @@ namespace OperatingSystemsCA1
                 int jobRR2ResponseTime = Job.turnAroundTimes[j.name]["RR2"];
                 rr2ResponseTotal += jobRR2ResponseTime;
 
-                Console.WriteLine("R\t" + j.name + "\t" + jobFIFOResponseTime + "\t" + jobSJFResponseTime + "\t" + jobSTCFResponseTime + "\t" + jobRR1ResponseTime + "\t" + jobRR2ResponseTime);
+                string responseTime = "R\t" + j.name + "\t" + jobFIFOResponseTime + "\t" + jobSJFResponseTime + "\t" + jobSTCFResponseTime + "\t" + jobRR1ResponseTime + "\t" + jobRR2ResponseTime;
+                Console.WriteLine(responseTime);
+                OutputToFile(responseTime);
             }
-            Console.WriteLine("= INDIVIDUAL STATS COMPLETE");
+            Console.WriteLine(statsComplete);
+            OutputToFile(statsComplete+"\r\n");
 
             // Outputting the aggregate turnaround times per scheduler
 
             float fifoAvg = fifoTurnaroundTotal / jobCount, sjfAvg = sjfTurnaroundTotal / jobCount, stcAvg = stcfTurnaroundTotal / jobCount, rr1Avg = rr1TurnaroundTotal / jobCount, rr2Avg = rr2TurnaroundTotal / jobCount;
-            Console.WriteLine("\n#\tSCHEDULER\tAVG_TURNAROUND\tAVG_RESPONSE");
-            Console.WriteLine("@\tFIFO\t\t" + fifoAvg + "\t\t" + fifoResponseTotal / jobCount);
-            Console.WriteLine("@\tSJF\t\t" + sjfAvg + "\t\t" + sjfResponseTotal / jobCount);
-            Console.WriteLine("@\tSTCF\t\t" + stcAvg + "\t\t" + stcfResponseTotal / jobCount);
-            Console.WriteLine("@\tRR1\t\t" + rr1Avg + "\t\t" + rr1ResponseTotal / jobCount);
-            Console.WriteLine("@\tRR2\t\t" + rr2Avg + "\t\t" + rr2ResponseTotal / jobCount);
-            Console.WriteLine("= AGGREGATE STATS COMPLETE");
+
+            string aggregateStats = "\n#\tSCHEDULER\tAVG_TURNAROUND\tAVG_RESPONSE";
+            aggregateStats += "\r\n@\tFIFO\t\t" + fifoAvg + "\t\t" + fifoResponseTotal / jobCount;
+            aggregateStats += "\r\n@\tSJF\t\t" + sjfAvg + "\t\t" + sjfResponseTotal / jobCount;
+            aggregateStats += "\r\n@\tSTCF\t\t" + stcAvg + "\t\t" + stcfResponseTotal / jobCount;
+            aggregateStats += "\r\n@\tRR1\t\t" + rr1Avg + "\t\t" + rr1ResponseTotal / jobCount;
+            aggregateStats += "\r\n@\tRR2\t\t" + rr2Avg + "\t\t" + rr2ResponseTotal / jobCount;
+            aggregateStats += "\r\n= AGGREGATE STATS COMPLETE";
+
+            Console.WriteLine(aggregateStats);
+            OutputToFile(aggregateStats);
         }
 
         private static string RunSchedulerForTimestep(Scheduler s, int timeStep, ref List<Job> newJobsAtCurrentTimestep, bool moreJobsToArrive, out bool jobsFinished, out string currentRunningJobName)
@@ -196,7 +226,7 @@ namespace OperatingSystemsCA1
             // If complete job != null, means a job was completed
             if (completeJob != null)
             {
-                output += timeStep + " COMPLETE: " + s.schedulerTypeName + "." + completeJob + "\n";
+                output += timeStep + " COMPLETE: " + s.schedulerTypeName + "." + completeJob + "\r\n";
             }
 
             return output;
